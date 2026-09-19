@@ -1,0 +1,539 @@
+/* ============================================================
+   AUTH  —  centered card with slide transition
+   Active panel is always centered in the viewport.
+   The inactive panel lives offscreen (translateX ±120%) and
+   is visibility:hidden so it is never painted or tab-reachable.
+   ============================================================ */
+
+/* ── google font import (loaded in index.html already) ─── */
+
+/* ── page shell ──────────────────────────────────────────── */
+.auth-page {
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ============================================================
+   BACKGROUND — deep navy + animated layers
+   ============================================================ */
+.auth-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* base gradient */
+.auth-bg__gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg,
+    #020c1b 0%,
+    #061830 25%,
+    #08223d 55%,
+    #051a2e 80%,
+    #030e1f 100%
+  );
+}
+
+/* ── aurora bands ── */
+.auth-bg__aurora {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.auth-bg__aurora-band {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  mix-blend-mode: screen;
+  will-change: transform, opacity;
+}
+/* band 1 — cyan-teal top-left */
+.auth-bg__aurora-band:nth-child(1) {
+  width: 70vw; height: 60vh;
+  top: -20vh; left: -15vw;
+  background: radial-gradient(ellipse, rgba(8,140,130,0.45) 0%, transparent 65%);
+  animation: auroraDrift1 14s ease-in-out infinite alternate;
+}
+/* band 2 — deep blue bottom-right */
+.auth-bg__aurora-band:nth-child(2) {
+  width: 60vw; height: 70vh;
+  bottom: -25vh; right: -10vw;
+  background: radial-gradient(ellipse, rgba(10,80,160,0.40) 0%, transparent 65%);
+  animation: auroraDrift2 18s ease-in-out infinite alternate;
+  animation-delay: -6s;
+}
+/* band 3 — teal mid accent */
+.auth-bg__aurora-band:nth-child(3) {
+  width: 45vw; height: 45vh;
+  top: 30%; left: 35%;
+  background: radial-gradient(ellipse, rgba(0,160,150,0.22) 0%, transparent 60%);
+  animation: auroraDrift3 11s ease-in-out infinite alternate;
+  animation-delay: -3s;
+}
+/* band 4 — subtle purple accent bottom-left */
+.auth-bg__aurora-band:nth-child(4) {
+  width: 40vw; height: 40vh;
+  bottom: 5%; left: 5%;
+  background: radial-gradient(ellipse, rgba(60,30,100,0.25) 0%, transparent 65%);
+  animation: auroraDrift1 20s ease-in-out infinite alternate;
+  animation-delay: -9s;
+}
+
+@keyframes auroraDrift1 {
+  0%   { transform: translate(0,   0)   scale(1); }
+  33%  { transform: translate(3vw, -4vh) scale(1.08); }
+  66%  { transform: translate(-2vw, 3vh) scale(0.95); }
+  100% { transform: translate(4vw,  2vh) scale(1.04); }
+}
+@keyframes auroraDrift2 {
+  0%   { transform: translate(0,  0)    scale(1); }
+  40%  { transform: translate(-4vw, 3vh) scale(1.06); }
+  100% { transform: translate(3vw, -5vh) scale(0.94); }
+}
+@keyframes auroraDrift3 {
+  0%   { transform: translate(0, 0)     scale(1) rotate(0deg); }
+  50%  { transform: translate(2vw, 2vh) scale(1.1) rotate(8deg); }
+  100% { transform: translate(-2vw,-2vh) scale(0.9) rotate(-6deg); }
+}
+
+/* ── floating particles ── */
+.auth-bg__particles {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.auth-particle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(13,200,200,0.55);
+  animation: particleFly linear infinite;
+}
+/* sizes + positions driven by nth-child */
+.auth-particle:nth-child(1)  { width:3px;  height:3px;  left:12%;  animation-duration:12s; animation-delay:0s;   }
+.auth-particle:nth-child(2)  { width:2px;  height:2px;  left:28%;  animation-duration:16s; animation-delay:-3s;  opacity:.5; }
+.auth-particle:nth-child(3)  { width:4px;  height:4px;  left:45%;  animation-duration:10s; animation-delay:-7s;  }
+.auth-particle:nth-child(4)  { width:2px;  height:2px;  left:63%;  animation-duration:18s; animation-delay:-1s;  opacity:.4; }
+.auth-particle:nth-child(5)  { width:3px;  height:3px;  left:78%;  animation-duration:14s; animation-delay:-5s;  }
+.auth-particle:nth-child(6)  { width:2px;  height:2px;  left:90%;  animation-duration:20s; animation-delay:-9s;  opacity:.3; }
+.auth-particle:nth-child(7)  { width:4px;  height:4px;  left:8%;   animation-duration:9s;  animation-delay:-4s;  opacity:.6; }
+.auth-particle:nth-child(8)  { width:2px;  height:2px;  left:55%;  animation-duration:22s; animation-delay:-12s; opacity:.4; }
+
+@keyframes particleFly {
+  0%   { bottom: -10px; opacity: 0; transform: translateX(0) scale(0.5); }
+  10%  { opacity: 1; }
+  90%  { opacity: 0.6; }
+  100% { bottom: 110vh; opacity: 0; transform: translateX(40px) scale(1.2); }
+}
+
+/* ── fine grid ── */
+.auth-bg__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(13,200,200,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(13,200,200,0.03) 1px, transparent 1px);
+  background-size: 52px 52px;
+}
+
+/* ── scan line shine (moves once on load) ── */
+.auth-bg__scanline {
+  position: absolute;
+  top: -100%;
+  left: 0; right: 0;
+  height: 40%;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    rgba(13,220,220,0.025) 50%,
+    transparent 100%
+  );
+  animation: scanline 8s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes scanline {
+  0%   { top: -40%; }
+  100% { top: 120%; }
+}
+
+/* ============================================================
+   CARD VIEWPORT — single centered container
+   Both panels are stacked here with position:absolute.
+   Only the active one is visible; the inactive one is
+   shifted off-screen and visibility:hidden.
+   ============================================================ */
+.auth-viewport {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 460px;
+  padding: 20px 16px;
+  perspective: 1200px;
+}
+
+/* ── panel wrapper ── */
+/*
+  .auth-panel is absolute, so both panels occupy the same space.
+  Active panel:   translateX(0),   opacity 1,   visibility visible
+  Inactive panel: translateX(±120%), opacity 0, visibility hidden  (after transition)
+
+  We use two classes toggled by JS:
+    .auth-panel--active   → on screen
+    .auth-panel--exit-left  → flying out to left  (login leaving when going to signup)
+    .auth-panel--exit-right → flying out to right (signup leaving when going to login)
+    .auth-panel--enter-right→ entering from right (signup coming in)
+    .auth-panel--enter-left → entering from left  (login coming in)
+*/
+.auth-panel-stack {
+  position: relative;
+  overflow: visible;
+  /*
+    min-height is set by ResizeObserver in AuthCard.jsx so the stack
+    always matches the tallest currently-rendered panel. This prevents
+    the page from collapsing during the exit→enter transition when the
+    active panel switches from relative to absolute positioning.
+  */
+}
+
+.auth-panel {
+  /* All panels are absolute so they stack in the same space */
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  will-change: transform, opacity, visibility;
+  transition:
+    transform 580ms cubic-bezier(0.32, 0, 0.18, 1),
+    opacity   580ms cubic-bezier(0.32, 0, 0.18, 1);
+}
+
+/* Active — stays absolute but the stack's min-height matches it */
+.auth-panel.is-active {
+  transform: translateX(0) scale(1);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  /* Lift active panel above the hidden ones */
+  z-index: 2;
+}
+
+/* Exiting to the left (login panel when going → signup) */
+.auth-panel.exit-left {
+  transform: translateX(-115%) scale(0.88) rotateY(8deg);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Exiting to the right (signup panel when going → login) */
+.auth-panel.exit-right {
+  transform: translateX(115%) scale(0.88) rotateY(-8deg);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Entering from right (signup panel coming in) */
+.auth-panel.enter-right {
+  transform: translateX(115%) scale(0.88) rotateY(-8deg);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Entering from left (login panel coming back) */
+.auth-panel.enter-left {
+  transform: translateX(-115%) scale(0.88) rotateY(8deg);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* reduced-motion fallback — instant swap, no translate */
+@media (prefers-reduced-motion: reduce) {
+  .auth-panel {
+    transition: opacity 200ms !important;
+  }
+  .auth-panel.exit-left,
+  .auth-panel.exit-right,
+  .auth-panel.enter-right,
+  .auth-panel.enter-left {
+    transform: none !important;
+  }
+}
+
+/* ── initial entrance animation (page load) ── */
+@keyframes cardEntrance {
+  0%   { opacity: 0; transform: translateY(32px) scale(0.94); filter: blur(4px); }
+  60%  { filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0)    scale(1);    filter: blur(0); }
+}
+.auth-panel.is-active.entrance {
+  animation: cardEntrance 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* ============================================================
+   CARD  —  glassmorphism
+   ============================================================ */
+.auth-card {
+  width: 100%;
+  background: rgba(255,255,255,0.065);
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 24px;
+  padding: 48px 44px 40px;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 0   0  1px rgba(13,200,200,0.08),
+    0 2px 0  1px rgba(255,255,255,0.06) inset,
+    0 20px 60px  rgba(0,0,0,0.50),
+    0 40px 120px rgba(0,0,0,0.30);
+}
+
+/* shimmer top edge */
+.auth-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 8%; right: 8%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(13,240,240,0.55) 50%,
+    transparent 100%
+  );
+}
+
+/* subtle bottom glow */
+.auth-card::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; left: 20%; right: 20%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(13,180,180,0.25) 50%,
+    transparent 100%
+  );
+}
+
+@media (max-width: 500px) {
+  .auth-card          { padding: 36px 24px 32px; border-radius: 20px; }
+  .auth-viewport      { padding: 16px 12px; }
+}
+
+/* ── logo / brand ── */
+.auth-card__logo {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 34px;
+}
+
+.auth-card__logo-mark {
+  width: 44px; height: 44px;
+  background: linear-gradient(135deg, #0b8080 0%, #13c8c8 100%);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow:
+    0 0 0 1px rgba(13,200,200,0.3),
+    0 4px 20px rgba(13,180,180,0.45),
+    0 8px 32px rgba(13,140,140,0.25);
+  flex-shrink: 0;
+  animation: logoBreath 4s ease-in-out infinite alternate;
+}
+@keyframes logoBreath {
+  from { box-shadow: 0 0 0 1px rgba(13,200,200,0.3), 0 4px 20px rgba(13,180,180,0.45), 0 8px 32px rgba(13,140,140,0.25); }
+  to   { box-shadow: 0 0 0 1px rgba(13,200,200,0.5), 0 4px 28px rgba(13,200,200,0.65), 0 12px 48px rgba(13,160,160,0.40); }
+}
+.auth-card__logo-mark svg { width: 24px; height: 24px; }
+
+.auth-card__logo-text {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+.auth-card__logo-sub {
+  font-size: 11.5px;
+  color: rgba(255,255,255,0.42);
+  display: block;
+  margin-top: 2px;
+  letter-spacing: 0.01em;
+}
+
+/* ── headings ── */
+.auth-card__heading {
+  font-size: 26px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 8px;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+.auth-card__subheading {
+  font-size: 14px;
+  color: rgba(255,255,255,0.42);
+  margin: 0 0 30px;
+  line-height: 1.55;
+}
+
+/* ── form ── */
+.auth-form { display: flex; flex-direction: column; gap: 18px; }
+.auth-field { display: flex; flex-direction: column; gap: 7px; }
+
+.auth-field__label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.55);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.auth-field__input {
+  height: 48px;
+  padding: 0 16px;
+  background: rgba(255,255,255,0.065);
+  border: 1.5px solid rgba(255,255,255,0.12);
+  border-radius: 11px;
+  font-size: 15px;
+  color: #fff;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 200ms, box-shadow 200ms, background 200ms;
+  letter-spacing: 0.01em;
+}
+.auth-field__input::placeholder { color: rgba(255,255,255,0.25); }
+.auth-field__input:focus {
+  border-color: rgba(13,210,210,0.65);
+  background: rgba(255,255,255,0.10);
+  box-shadow:
+    0 0 0 3px rgba(13,190,190,0.18),
+    0 0 20px rgba(13,180,180,0.10);
+}
+.auth-field__input.is-error {
+  border-color: rgba(248,113,113,0.75);
+  box-shadow: 0 0 0 3px rgba(248,113,113,0.14);
+}
+
+.auth-field__error {
+  font-size: 12px;
+  color: #fca5a5;
+  display: flex; align-items: center; gap: 5px;
+}
+
+/* ── submit button ── */
+.auth-btn {
+  height: 50px;
+  background: linear-gradient(135deg, #0a8f8f 0%, #0ebebe 55%, #13d4d4 100%);
+  color: #fff;
+  border: none;
+  border-radius: 11px;
+  font-size: 15.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 6px;
+  letter-spacing: 0.02em;
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 4px 24px rgba(13,180,180,0.40),
+    0 1px 0   rgba(255,255,255,0.15) inset;
+  transition: transform 140ms, box-shadow 200ms, opacity 160ms;
+}
+/* ripple-shimmer on hover */
+.auth-btn::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255,255,255,0.18),
+    transparent
+  );
+  transform: skewX(-20deg);
+  transition: left 500ms ease;
+}
+.auth-btn:hover::before { left: 160%; }
+.auth-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 36px rgba(13,200,200,0.55), 0 1px 0 rgba(255,255,255,0.15) inset;
+}
+.auth-btn:active:not(:disabled) { transform: scale(0.975) translateY(0); }
+.auth-btn:disabled { opacity: 0.48; cursor: not-allowed; }
+
+.auth-btn__spinner {
+  width: 18px; height: 18px;
+  border: 2.5px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: authSpin 0.6s linear infinite;
+}
+@keyframes authSpin { to { transform: rotate(360deg); } }
+
+/* ── error / success banners ── */
+.auth-error-banner {
+  background: rgba(239,68,68,0.12);
+  border: 1px solid rgba(239,68,68,0.32);
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 13px;
+  color: #fca5a5;
+  display: flex; align-items: flex-start; gap: 9px;
+  line-height: 1.45;
+  animation: bannerIn 300ms cubic-bezier(0.22,1,0.36,1);
+}
+.auth-success-toast {
+  background: rgba(16,185,129,0.12);
+  border: 1px solid rgba(16,185,129,0.28);
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 13px;
+  color: #6ee7b7;
+  display: flex; align-items: center; gap: 9px;
+  margin-bottom: 4px;
+  animation: bannerIn 300ms cubic-bezier(0.22,1,0.36,1);
+}
+@keyframes bannerIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+.auth-error-banner svg { flex-shrink: 0; margin-top: 1px; }
+
+/* ── switch prompt ── */
+.auth-switch {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: rgba(255,255,255,0.38);
+}
+.auth-switch__btn {
+  background: none; border: none;
+  color: #13d4d4;
+  font-size: 14px; font-weight: 700;
+  cursor: pointer; padding: 0;
+  position: relative;
+  transition: color 160ms;
+}
+/* animated underline */
+.auth-switch__btn::after {
+  content: '';
+  position: absolute;
+  bottom: -2px; left: 0; right: 100%;
+  height: 1.5px;
+  background: #13d4d4;
+  transition: right 250ms cubic-bezier(0.4,0,0.2,1);
+}
+.auth-switch__btn:hover { color: #20f0f0; }
+.auth-switch__btn:hover::after { right: 0; }

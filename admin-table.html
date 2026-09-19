@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>GMC / GPA Intimation Dashboard</title>
+<style>
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root {
+  --teal:          #0d8080;
+  --teal-mid:      #0fa8a8;
+  --teal-light:    #e4f4f4;
+  --teal-border:   #a8dcdc;
+  --navy:          #0f2544;
+  --navy-mid:      #1a3560;
+  --navy-light:    #243f6e;
+  --slate:         #4a5a7a;
+  --muted:         #6b7a99;
+  --border:        #e0e7f0;
+  --bg-page:       #f0f4fa;
+  --bg-card:       #ffffff;
+  --shadow-xs:     0 1px 2px rgba(15,37,68,.06);
+  --shadow-sm:     0 2px 8px rgba(15,37,68,.08),0 1px 2px rgba(15,37,68,.04);
+  --shadow-md:     0 4px 20px rgba(15,37,68,.10),0 1px 4px rgba(15,37,68,.06);
+  --radius-sm:     7px;
+  --radius:        11px;
+  --font-body:     'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-mono:     'JetBrains Mono','Fira Mono','Consolas',monospace;
+  --transition:    150ms cubic-bezier(.4,0,.2,1);
+}
+
+/* ============================================================
+   RESET + BASE
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; scrollbar-gutter: stable; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg-page);
+  color: var(--navy);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+button { font-family: inherit; cursor: pointer; }
+input, select { font-family: inherit; }
+:focus-visible { outline: 2.5px solid var(--teal); outline-offset: 2px; }
+:focus:not(:focus-visible) { outline: none; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: #c8d0e0; border-radius: 3px; }
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+.site-header {
+  background: linear-gradient(135deg, #0c1f3f 0%, #0f2a52 50%, #0d2847 100%);
+  padding: 0 32px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 1px 0 rgba(255,255,255,.06), 0 4px 20px rgba(0,0,0,.22);
+}
+.site-header::after {
+  content:''; position:absolute; bottom:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,transparent 0%,var(--teal) 30%,var(--teal-mid) 70%,transparent 100%);
+  opacity:.5;
+}
+.header-brand { display: flex; align-items: center; gap: 12px; }
+.header-logo {
+  width: 34px; height: 34px;
+  background: linear-gradient(135deg, var(--teal) 0%, var(--teal-mid) 100%);
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 10px rgba(13,128,128,.45);
+}
+.header-logo svg { color: #fff; }
+.header-title { font-size: 15px; font-weight: 700; color: #fff; letter-spacing: -.01em; line-height:1.2; }
+.header-sub   { font-size: 10.5px; color: rgba(255,255,255,.45); display: block; margin-top:1px; letter-spacing:.02em; }
+
+.header-right { display:flex; align-items:center; gap:14px; }
+
+/* avatar circle */
+.header-avatar {
+  width:36px; height:36px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:13px; font-weight:700; color:#fff; letter-spacing:.02em;
+  flex-shrink:0;
+  border:2px solid rgba(255,255,255,.18);
+  box-shadow:0 2px 8px rgba(0,0,0,.3);
+  user-select:none;
+}
+.header-user-info { display:flex; flex-direction:column; align-items:flex-end; gap:1px; }
+.header-user-name { font-size:13px; font-weight:600; color:rgba(255,255,255,.88); line-height:1.2; }
+.header-user-role { font-size:10.5px; color:rgba(255,255,255,.4); letter-spacing:.02em; }
+.header-divider   { width:1px; height:22px; background:rgba(255,255,255,.12); }
+
+.header-count {
+  background:rgba(255,255,255,.10);
+  color:rgba(255,255,255,.8);
+  font-size:12.5px; font-weight:600;
+  padding:4px 12px; border-radius:12px;
+  font-variant-numeric:tabular-nums;
+}
+
+/* ============================================================
+   CONTENT WRAPPER
+   ============================================================ */
+.content { max-width: 1300px; margin: 0 auto; padding: 28px 28px 60px; }
+.page-title-row {
+  display: flex; align-items: baseline; gap: 12px; margin-bottom: 20px;
+}
+.page-title-row h1 {
+  font-size: 20px; font-weight: 700; letter-spacing: -.02em;
+}
+.record-count { font-size: 13px; color: var(--muted); }
+
+/* ============================================================
+   FILTER BAR
+   ============================================================ */
+.filter-bar {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.tab-strip {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tab-strip::-webkit-scrollbar { display: none; }
+.tab-btn {
+  display: flex; align-items: center; gap: 7px;
+  padding: 13px 14px 11px;
+  font-size: 13.5px; font-weight: 500;
+  color: var(--muted);
+  background: none; border: none;
+  border-bottom: 2.5px solid transparent;
+  cursor: pointer;
+  transition: color 120ms, border-color 120ms;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.tab-btn:hover { color: var(--navy); }
+.tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); font-weight: 600; }
+.tab-count {
+  font-size: 11px;
+  background: var(--bg-page); color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 10px; padding: 1px 7px;
+  font-weight: 600; font-variant-numeric: tabular-nums;
+  min-width: 22px; text-align: center;
+}
+.tab-btn.active .tab-count {
+  background: var(--teal-light); color: var(--teal); border-color: var(--teal-border);
+}
+.filter-controls {
+  display: flex; align-items: center; gap: 12px; padding: 14px 20px; flex-wrap: wrap;
+}
+.search-wrap { position: relative; flex: 1; min-width: 200px; }
+.search-icon {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); pointer-events: none;
+}
+.search-input {
+  width: 100%; height: 36px; padding: 0 12px 0 34px;
+  border: 1.5px solid var(--border); border-radius: 7px;
+  font-size: 13.5px; color: var(--navy); background: var(--bg-page);
+  outline: none; transition: border-color 150ms, box-shadow 150ms;
+}
+.search-input::placeholder { color: #aab4cc; }
+.search-input:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(13,122,122,.1);
+  background: #fff;
+}
+.status-select {
+  height: 36px; padding: 0 28px 0 10px;
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm,7px);
+  font-size: 13.5px; color: var(--navy);
+  background: var(--bg-page) url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7a99' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center;
+  -webkit-appearance: none; appearance: none;
+  outline: none; cursor: pointer; transition: border-color 150ms;
+  display:none; /* hidden — replaced by date range */
+}
+.filter-date-wrap {
+  display:flex; align-items:center; gap:6px; flex-shrink:0; flex-wrap:wrap;
+}
+.filter-date-label {
+  font-size:11.5px; font-weight:600; color:var(--muted);
+  white-space:nowrap; letter-spacing:.02em;
+}
+.filter-date {
+  height:36px; padding:0 10px;
+  border:1.5px solid var(--border); border-radius:var(--radius-sm,7px);
+  font-size:13px; color:var(--navy); background:var(--bg-page);
+  outline:none; cursor:pointer; font-family:inherit;
+  transition:border-color 150ms,box-shadow 150ms;
+}
+.filter-date:focus {
+  border-color:var(--teal);
+  box-shadow:0 0 0 3px rgba(13,128,128,.10);
+  background:#fff;
+}
+.filter-date-sep { font-size:12px; color:var(--muted); font-weight:500; }
+.export-btn {
+  height: 36px; padding: 0 16px;
+  background: var(--navy); color: #fff;
+  border: none; border-radius: 7px;
+  font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; gap: 6px; white-space: nowrap;
+  transition: background 150ms;
+}
+.export-btn:hover { background: var(--navy-mid); }
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+.table-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+table {
+  width: 100%; border-collapse: collapse; font-size: 13.5px;
+}
+thead tr { background: #f8fafc; border-bottom: 2px solid var(--border); }
+th {
+  padding: 11px 14px;
+  text-align: left; font-size: 11.5px; font-weight: 700;
+  letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); white-space: nowrap;
+}
+th:last-child { width: 40px; }
+tbody tr.data-row {
+  border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background 100ms;
+}
+tbody tr.data-row:hover { background: #f8fbfb; }
+tbody tr.data-row.expanded { background: #f3fafa; }
+tbody tr.data-row:last-of-type { border-bottom: none; }
+td { padding: 12px 14px; vertical-align: middle; }
+.td-mono {
+  font-family: var(--font-mono); font-size: 12.5px;
+  letter-spacing: .02em; color: var(--slate); font-variant-numeric: tabular-nums;
+}
+.sub-date { font-weight: 500; white-space: nowrap; }
+.sub-time { font-size: 11.5px; color: var(--muted); display: block; margin-top: 1px; }
+.emp-name { font-weight: 500; }
+.emp-code { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+.pat-name { font-weight: 500; }
+.pat-rel  { font-size: 11.5px; color: var(--muted); }
+.td-email { font-size: 13px; color: var(--slate); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.td-empty { color: var(--muted); }
+
+/* chevron */
+.chevron-btn {
+  background: none; border: none; padding: 4px; cursor: pointer;
+  color: var(--muted);
+  display: flex; align-items: center;
+  transition: color 150ms, transform 150ms; border-radius: 4px;
+}
+.chevron-btn:hover { color: var(--teal); }
+.chevron-btn.open  { transform: rotate(180deg); color: var(--teal); }
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; font-weight: 600;
+  padding: 3px 9px; border-radius: 4px; white-space: nowrap;
+  letter-spacing: .01em;
+}
+/* Type badges */
+.badge-staff   { background: #dbeafe; color: #1d4ed8; }
+.badge-mktg    { background: #fef9c3; color: #854d0e; }
+.badge-accdt   { background: #fce7f3; color: #9d174d; }
+.badge-gmcbrl  { background: #d1fae5; color: #065f46; }
+.badge-gpabrl  { background: #ede9fe; color: #5b21b6; }
+/* Status */
+.badge-pending  { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+.badge-review   { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+.badge-approved { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.badge-rejected { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+
+/* ============================================================
+   DETAIL PANEL
+   ============================================================ */
+tr.detail-row td {
+  padding: 0 !important;
+  border-bottom: 2px solid var(--teal) !important;
+}
+.detail-panel {
+  background: #f8fbfb;
+  border-top: 1px solid #c8e6e6;
+  padding: 24px 28px;
+  animation: slideDown 180ms ease-out;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-5px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) { .detail-panel { animation: none; } }
+
+.detail-sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+  gap: 18px; margin-bottom: 20px;
+}
+.detail-section {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px 18px;
+}
+.section-heading {
+  font-size: 10.5px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--teal); margin: 0 0 12px;
+  padding-bottom: 8px; border-bottom: 1px solid var(--teal-light);
+}
+.d-field { margin-bottom: 9px; }
+.d-field:last-child { margin-bottom: 0; }
+.d-label {
+  font-size: 10.5px; font-weight: 600; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .06em; display: block; margin-bottom: 2px;
+}
+.d-value { font-size: 13.5px; color: var(--navy); }
+.d-value.mono {
+  font-family: var(--font-mono); font-size: 12.5px; font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   PAGINATION
+   ============================================================ */
+.pagination {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  background: #fff; border-radius: 0 0 var(--radius) var(--radius);
+  font-size: 13px; color: var(--muted);
+  flex-wrap: wrap; gap: 8px;
+}
+.page-controls { display: flex; gap: 4px; align-items: center; }
+.page-btn {
+  min-width: 32px; height: 32px; padding: 0 8px;
+  border: 1.5px solid var(--border); border-radius: 6px;
+  background: #fff; font-size: 13px; color: var(--navy); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background 120ms, border-color 120ms, color 120ms;
+  font-variant-numeric: tabular-nums;
+}
+.page-btn:hover:not(:disabled):not(.active) { border-color: var(--teal); color: var(--teal); }
+.page-btn.active { background: var(--teal); border-color: var(--teal); color: #fff; font-weight: 700; }
+.page-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+.empty-state { text-align: center; padding: 64px 24px; color: var(--muted); }
+.empty-icon {
+  width: 56px; height: 56px; background: var(--teal-light); border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px; color: var(--teal);
+}
+.empty-state h3 { font-size: 15px; font-weight: 600; color: var(--navy); margin-bottom: 6px; }
+.empty-state p  { font-size: 13.5px; margin-bottom: 18px; }
+.reset-btn {
+  height: 36px; padding: 0 18px;
+  background: var(--teal); color: #fff;
+  border: none; border-radius: 7px; font-size: 13.5px; font-weight: 600;
+  cursor: pointer; transition: opacity 150ms;
+}
+.reset-btn:hover { opacity: .88; }
+
+/* ============================================================
+   RESPONSIVE — stacked cards below 780 px
+   ============================================================ */
+@media (max-width: 780px) {
+  .content { padding: 14px 10px 48px; }
+  .site-header { padding: 0 16px; }
+
+  thead { display: none; }
+  table, tbody, tr.data-row, td { display: block; width: 100%; }
+
+  tr.data-row {
+    border: 1px solid var(--border); border-radius: 9px;
+    margin-bottom: 10px; padding: 14px 16px; background: #fff;
+  }
+  tr.data-row.expanded { border-color: var(--teal); }
+
+  td {
+    padding: 4px 0; border: none;
+    display: flex; gap: 8px; align-items: baseline;
+  }
+  td::before {
+    content: attr(data-label);
+    font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .06em; color: var(--muted); min-width: 90px; flex-shrink: 0;
+  }
+  td.td-chevron { justify-content: flex-end; padding-top: 8px; }
+  td.td-chevron::before { display: none; }
+
+  .table-wrap { border-radius: var(--radius); overflow: visible; background: none; border: none; box-shadow: none; }
+
+  .detail-panel { padding: 14px; border-radius: 0 0 9px 9px; }
+  .detail-sections { grid-template-columns: 1fr; }
+  tr.detail-row td { display: table-cell; }
+
+  .filter-controls { flex-direction: column; align-items: stretch; padding: 12px; }
+  .search-wrap { min-width: unset; }
+  .pagination { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     HEADER
+     ============================================================ -->
+<header class="site-header">
+  <div class="header-brand">
+    <div class="header-logo" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 22 22" fill="none">
+        <path d="M11 2.5L4 5.5v5.5c0 4 3.1 7.6 7 8.7 3.9-1.1 7-4.7 7-8.7V5.5L11 2.5z"
+              stroke="white" stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="M8 11h6M11 8v6" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div>
+      <span class="header-title">GMC / GPA Portal</span>
+      <span class="header-sub">Intimation Dashboard — Admin</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="header-user-info">
+      <span class="header-user-name" id="header-user-name">Admin</span>
+      <span class="header-user-role">Administrator</span>
+    </div>
+    <div class="header-avatar" id="header-avatar" title="Admin">HM</div>
+    <div class="header-divider" aria-hidden="true"></div>
+    <span class="header-count" id="header-count">14 records</span>
+  </div>
+</header>
+
+<!-- ============================================================
+     CONTENT
+     ============================================================ -->
+<main class="content">
+  <div class="page-title-row">
+    <h1>Intimation Submissions</h1>
+    <span class="record-count" id="visible-count"></span>
+  </div>
+
+  <!-- ── Filter Bar ── -->
+  <div class="filter-bar">
+    <div class="tab-strip" role="tablist" aria-label="Form type filter">
+      <button class="tab-btn active" data-type="" role="tab" aria-selected="true">
+        All Types <span class="tab-count" id="count-all">14</span>
+      </button>
+      <button class="tab-btn" data-type="Staff Mediclaim" role="tab" aria-selected="false">
+        Staff Mediclaim <span class="tab-count" id="count-staff">0</span>
+      </button>
+      <button class="tab-btn" data-type="Marketing Mediclaim" role="tab" aria-selected="false">
+        Marketing Mediclaim <span class="tab-count" id="count-mktg">0</span>
+      </button>
+      <button class="tab-btn" data-type="GMC Brillex Staff" role="tab" aria-selected="false">
+        GMC Brillex Staff <span class="tab-count" id="count-gmcbrl">0</span>
+      </button>
+      <button class="tab-btn" data-type="Personal Accident" role="tab" aria-selected="false">
+        Personal Accident <span class="tab-count" id="count-accdt">0</span>
+      </button>
+      <button class="tab-btn" data-type="GPA Brillex Staff" role="tab" aria-selected="false">
+        GPA Brillex Staff <span class="tab-count" id="count-gpabrl">0</span>
+      </button>
+    </div>
+
+    <div class="filter-controls">
+      <div class="search-wrap">
+        <span class="search-icon" aria-hidden="true">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <circle cx="6" cy="6" r="4.5" stroke="#6b7a99" stroke-width="1.5"/>
+            <path d="M9.5 9.5l2.5 2.5" stroke="#6b7a99" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <input type="search" id="search-input" class="search-input"
+               placeholder="Search employee, policy no., patient…"
+               aria-label="Search submissions"/>
+      </div>
+
+      <div class="filter-date-wrap" role="group" aria-label="Date range filter">
+        <span class="filter-date-label">From</span>
+        <input type="date" id="date-from" class="filter-date" aria-label="From date"/>
+        <span class="filter-date-sep">—</span>
+        <span class="filter-date-label">To</span>
+        <input type="date" id="date-to" class="filter-date" aria-label="To date"/>
+      </div>
+
+      <button class="export-btn" id="export-btn" aria-label="Export as CSV">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path d="M7 1v8M4 6l3 3 3-3" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 11h10" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        Export
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Table ── -->
+  <div class="table-wrap" id="table-wrap">
+    <table id="submissions-table" aria-label="Submission records">
+      <thead>
+        <tr>
+          <th>Submitted</th>
+          <th>Type</th>
+          <th>Employee</th>
+          <th>Policy No.</th>
+          <th>Patient</th>
+          <th>Email</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="table-body"></tbody>
+    </table>
+    <div id="empty-state" class="empty-state" style="display:none">
+      <div class="empty-icon" aria-hidden="true">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+          <rect x="3" y="5" width="20" height="17" rx="2.5" stroke="currentColor" stroke-width="1.8"/>
+          <path d="M3 10h20" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M8 15h10M8 18.5h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" opacity=".5"/>
+        </svg>
+      </div>
+      <h3>No records found</h3>
+      <p>No submissions match the current filters.<br>Try adjusting your search or filter criteria.</p>
+      <button class="reset-btn" id="reset-btn">Clear all filters</button>
+    </div>
+    <nav class="pagination" id="pagination" aria-label="Pagination">
+      <span id="pagination-info"></span>
+      <div class="page-controls" id="page-controls"></div>
+    </nav>
+  </div>
+</main>
+
+<script>
+/* ============================================================
+   MOCK DATA — 14 records, flat schema matching the Intimation Form
+   project's MongoDB collection (intimation-form / submissions).
+   Shape mirrors GET /api/admin/submissions response.
+   ============================================================ */
+const MOCK = [
+  {
+    _id: "SUB-2024-001", referenceNo: "UNISON-001",
+    submittedAt: "2024-11-04T09:15:00Z",
+    formType: "GMC", intimationFor: "Staff", status: "Approved",
+    policyNumber: "GMC-10042-STF",
+    employeeCode: "4412", firstName: "Ananya", middleName: "", surname: "Krishnan",
+    mobile: "9876543210", email: "ananya.k@company.in",
+    patientName: "Rajan Krishnan", relationship: "Spouse",
+    diagnosis: "Acute Appendicitis", treatmentNature: "Surgical",
+    admissionDateTime: "28 Oct 2024, 07:30 AM",
+    doctorName: "Dr. Priya Menon", hospitalName: "Apollo Hospitals",
+    hospitalAddress: "21, Greams Lane, Chennai – 600 006", pincode: "600006"
+  },
+  {
+    _id: "SUB-2024-002", referenceNo: "UNISON-002",
+    submittedAt: "2024-11-06T11:42:00Z",
+    formType: "GPA", intimationFor: "GPA", status: "Under review",
+    policyNumber: "GPA-20093-PA",
+    employeeCode: "3301", firstName: "Vikram", middleName: "", surname: "Nair",
+    mobile: "9823456710", email: "vikram.n@company.in",
+    patientName: "Vikram Nair", relationship: "Self",
+    accidentLocation: "NH-48, Pune–Mumbai Expressway",
+    accidentDescription: "Road traffic accident — rear-end collision while commuting",
+    injuryDescription: "Fracture of right tibia and fibula",
+    accidentDateTime: "05 Nov 2024, 08:15 AM",
+    firDetails: "MH-12 / Khopoli Police Station",
+    doctorName: "Dr. Arun Desai", hospitalName: "Fortis Hiranandani Hospital",
+    hospitalAddress: "Sector 10-D, Vashi, Navi Mumbai – 400 703", pincode: "400703"
+  },
+  {
+    _id: "SUB-2024-003", referenceNo: "UNISON-003",
+    submittedAt: "2024-11-07T14:05:00Z",
+    formType: "GMC", intimationFor: "Marketing", status: "Pending",
+    policyNumber: "GMC-10078-MKT",
+    employeeCode: "2215", firstName: "Sunita", middleName: "", surname: "Iyer",
+    mobile: "9900112233", email: "sunita.i@company.in",
+    patientName: "Meera Iyer", relationship: "Daughter",
+    diagnosis: "Dengue Fever", treatmentNature: "Medical management",
+    admissionDateTime: "01 Nov 2024, 10:00 AM",
+    doctorName: "Dr. Kavya Rao", hospitalName: "Manipal Hospital",
+    hospitalAddress: "HAL Airport Road, Bangalore – 560 017", pincode: "560017"
+  },
+  {
+    _id: "SUB-2024-004", referenceNo: "UNISON-004",
+    submittedAt: "2024-11-08T08:30:00Z",
+    formType: "GMC", intimationFor: "BrillexStaff", status: "Rejected",
+    policyNumber: "GMC-10042-STF",
+    employeeCode: "5587", firstName: "Rohit", middleName: "", surname: "Sharma",
+    mobile: "9711223344", email: "rohit.s@company.in",
+    patientName: "Rohit Sharma", relationship: "Self",
+    diagnosis: "Elective Knee Arthroscopy", treatmentNature: "Surgical",
+    admissionDateTime: "06 Nov 2024, 06:30 AM",
+    doctorName: "Dr. Nikhil Gupta", hospitalName: "Max Super Speciality",
+    hospitalAddress: "Press Enclave Marg, Saket, New Delhi – 110 017", pincode: "110017"
+  },
+  {
+    _id: "SUB-2024-005", referenceNo: "UNISON-005",
+    submittedAt: "2024-11-09T10:20:00Z",
+    formType: "GPA", intimationFor: "GPABrillexStaff", status: "Approved",
+    policyNumber: "GPA-20094-PA",
+    employeeCode: "7823", firstName: "Divya", middleName: "S", surname: "Menon",
+    mobile: "9955667788", email: "divya.m@company.in",
+    patientName: "Divya S Menon", relationship: "Self",
+    accidentLocation: "Construction site, Whitefield, Bangalore",
+    accidentDescription: "Fall from scaffolding at approximately 4 feet height",
+    injuryDescription: "Wrist fracture (distal radius)",
+    accidentDateTime: "08 Nov 2024, 02:45 PM",
+    firDetails: "KA-114 / Whitefield PS",
+    doctorName: "Dr. Suresh Babu", hospitalName: "Sakra World Hospital",
+    hospitalAddress: "52/2, Devarabeesanahalli, Bangalore – 560 103", pincode: "560103"
+  },
+  {
+    _id: "SUB-2024-006", referenceNo: "UNISON-006",
+    submittedAt: "2024-11-10T16:55:00Z",
+    formType: "GMC", intimationFor: "Marketing", status: "Under review",
+    policyNumber: "GMC-10079-MKT",
+    employeeCode: "3308", firstName: "Arjun", middleName: "", surname: "Patel",
+    mobile: "9888001122", email: "arjun.p@company.in",
+    patientName: "Kamla Patel", relationship: "Mother",
+    diagnosis: "Ischemic Heart Disease — CABG", treatmentNature: "Surgical (Bypass)",
+    admissionDateTime: "08 Nov 2024, 05:00 AM",
+    doctorName: "Dr. Rajan Shah", hospitalName: "Narayana Hrudayalaya",
+    hospitalAddress: "258/A, Bommasandra, Bangalore – 560 099", pincode: "560099"
+  },
+  {
+    _id: "SUB-2024-007", referenceNo: "UNISON-007",
+    submittedAt: "2024-11-11T09:00:00Z",
+    formType: "GMC", intimationFor: "Staff", status: "Pending",
+    policyNumber: "GMC-10042-STF",
+    employeeCode: "6634", firstName: "Priya", middleName: "", surname: "Subramanian",
+    mobile: "9666778899", email: "priya.sub@company.in",
+    patientName: "Anand Subramanian", relationship: "Husband",
+    diagnosis: "Gallstone — Laparoscopic Cholecystectomy", treatmentNature: "Surgical",
+    admissionDateTime: "10 Nov 2024, 07:00 AM",
+    doctorName: "Dr. Mythili Nair", hospitalName: "SIMS Hospital",
+    hospitalAddress: "1, Jawaharlal Nehru Salai, Chennai – 600 107", pincode: "600107"
+  },
+  {
+    _id: "SUB-2024-008", referenceNo: "UNISON-008",
+    submittedAt: "2024-11-12T13:10:00Z",
+    formType: "GPA", intimationFor: "GPA", status: "Rejected",
+    policyNumber: "GPA-20095-PA",
+    employeeCode: "4490", firstName: "Karan", middleName: "", surname: "Mehta",
+    mobile: "9344556677", email: "karan.m@company.in",
+    patientName: "Karan Mehta", relationship: "Self",
+    accidentLocation: "Andheri Sports Complex, Mumbai",
+    accidentDescription: "Sports injury during corporate cricket match — twisted ankle diving for catch",
+    injuryDescription: "Grade II lateral ankle sprain",
+    accidentDateTime: "11 Nov 2024, 04:30 PM",
+    firDetails: "No FIR — sports accident",
+    doctorName: "Dr. Sachin Kadam", hospitalName: "Kokilaben Dhirubhai Ambani Hospital",
+    hospitalAddress: "Rao Saheb Achutrao Patwardhan Marg, Mumbai – 400 053", pincode: "400053"
+  },
+  {
+    _id: "SUB-2024-009", referenceNo: "UNISON-009",
+    submittedAt: "2024-11-13T11:25:00Z",
+    formType: "GMC", intimationFor: "Marketing", status: "Approved",
+    policyNumber: "GMC-10080-MKT",
+    employeeCode: "4417", firstName: "Neha", middleName: "", surname: "Joshi",
+    mobile: "9122334455", email: "neha.j@company.in",
+    patientName: "Yash Joshi", relationship: "Son",
+    diagnosis: "Viral Encephalitis", treatmentNature: "ICU + Medical Management",
+    admissionDateTime: "10 Nov 2024, 11:00 PM",
+    doctorName: "Dr. Rajeev Kulkarni", hospitalName: "Ruby Hall Clinic",
+    hospitalAddress: "40, Sassoon Road, Pune – 411 001", pincode: "411001"
+  },
+  {
+    _id: "SUB-2024-010", referenceNo: "UNISON-010",
+    submittedAt: "2024-11-14T08:00:00Z",
+    formType: "GMC", intimationFor: "Staff", status: "Under review",
+    policyNumber: "GMC-10042-STF",
+    employeeCode: "9910", firstName: "Amit", middleName: "", surname: "Verma",
+    mobile: "9888123456", email: "amit.v@company.in",
+    patientName: "Shalini Verma", relationship: "Wife",
+    diagnosis: "Complicated Delivery — Caesarean Section", treatmentNature: "Surgical",
+    admissionDateTime: "12 Nov 2024, 03:00 AM",
+    doctorName: "Dr. Sunanda Rao", hospitalName: "Cloudnine Hospital",
+    hospitalAddress: "1533, 9th Main, BTM Layout, Bangalore – 560 076", pincode: "560076"
+  },
+  {
+    _id: "SUB-2024-011", referenceNo: "UNISON-011",
+    submittedAt: "2024-11-15T15:30:00Z",
+    formType: "GPA", intimationFor: "GPABrillexStaff", status: "Pending",
+    policyNumber: "GPA-20096-PA",
+    employeeCode: "8821", firstName: "Sanjay", middleName: "", surname: "Kumar",
+    mobile: "9599887766", email: "sanjay.k@company.in",
+    patientName: "Sanjay Kumar", relationship: "Self",
+    accidentLocation: "Factory floor, Peenya Industrial Area, Bangalore",
+    accidentDescription: "Hand caught in conveyor belt during routine maintenance check",
+    injuryDescription: "Traumatic amputation of distal phalanx — right index finger",
+    accidentDateTime: "15 Nov 2024, 10:20 AM",
+    firDetails: "KA-098 / Peenya Industrial PS",
+    doctorName: "Dr. Vinod Thomas", hospitalName: "St. John's Medical College Hospital",
+    hospitalAddress: "Sarjapur Road, Koramangala, Bangalore – 560 034", pincode: "560034"
+  },
+  {
+    _id: "SUB-2024-012", referenceNo: "UNISON-012",
+    submittedAt: "2024-11-16T10:45:00Z",
+    formType: "GMC", intimationFor: "Marketing", status: "Pending",
+    policyNumber: "GMC-10081-MKT",
+    employeeCode: "5526", firstName: "Pooja", middleName: "", surname: "Reddy",
+    mobile: "9767001234", email: "pooja.r@company.in",
+    patientName: "Lakshmi Reddy", relationship: "Mother-in-law",
+    diagnosis: "Hip Replacement Surgery (Osteoarthritis)", treatmentNature: "Surgical",
+    admissionDateTime: "14 Nov 2024, 06:00 AM",
+    doctorName: "Dr. Hari Krishnamurthy", hospitalName: "Yashoda Hospital",
+    hospitalAddress: "Rajbhavan Road, Somajiguda, Hyderabad – 500 082", pincode: "500082"
+  },
+  {
+    _id: "SUB-2024-013", referenceNo: "UNISON-013",
+    submittedAt: "2024-11-17T14:20:00Z",
+    formType: "GMC", intimationFor: "BrillexStaff", status: "Approved",
+    policyNumber: "GMC-10042-STF",
+    employeeCode: "3377", firstName: "Ramesh", middleName: "V", surname: "Chandran",
+    mobile: "9344001122", email: "ramesh.c@company.in",
+    patientName: "Ramesh V Chandran", relationship: "Self",
+    diagnosis: "Type 2 Diabetes — Diabetic Foot Ulcer", treatmentNature: "Debridement + Wound Management",
+    admissionDateTime: "15 Nov 2024, 09:00 AM",
+    doctorName: "Dr. Geeta Pillai", hospitalName: "KIMS Hospital",
+    hospitalAddress: "Minister Road, Secunderabad – 500 003", pincode: "500003"
+  },
+  {
+    _id: "SUB-2024-014", referenceNo: "UNISON-014",
+    submittedAt: "2024-11-18T09:55:00Z",
+    formType: "GPA", intimationFor: "GPA", status: "Under review",
+    policyNumber: "GPA-20097-PA",
+    employeeCode: "6631", firstName: "Lavanya", middleName: "", surname: "Bhat",
+    mobile: "9611224433", email: "lavanya.b@company.in",
+    patientName: "Lavanya Bhat", relationship: "Self",
+    accidentLocation: "Marine Drive, Mumbai",
+    accidentDescription: "Slipped on wet pavement during commute to client meeting",
+    injuryDescription: "Hairline fracture — left clavicle",
+    accidentDateTime: "17 Nov 2024, 09:15 AM",
+    firDetails: "No FIR — accidental fall",
+    doctorName: "Dr. Pramod Nair", hospitalName: "Breach Candy Hospital",
+    hospitalAddress: "60-A, Bhulabhai Desai Road, Mumbai – 400 026", pincode: "400026"
+  },
+  {
+    _id: "SUB-2024-015", referenceNo: "UNISON-015",
+    submittedAt: "2024-11-19T10:30:00Z",
+    formType: "GMC", intimationFor: "BrillexStaff", status: "Pending",
+    policyNumber: "GMP0000216000100",
+    employeeCode: "BRX-1102", firstName: "Deepak", middleName: "R", surname: "Menon",
+    mobile: "9800112233", email: "deepak.m@brillex.in",
+    patientName: "Deepak R Menon", relationship: "Self",
+    diagnosis: "Lumbar Disc Herniation — Microdiscectomy", treatmentNature: "Surgical",
+    admissionDateTime: "18 Nov 2024, 07:00 AM",
+    doctorName: "Dr. Ashok Shenoy", hospitalName: "Manipal Hospital",
+    hospitalAddress: "Old Airport Road, Bangalore – 560 017", pincode: "560017"
+  },
+  {
+    _id: "SUB-2024-016", referenceNo: "UNISON-016",
+    submittedAt: "2024-11-20T14:10:00Z",
+    formType: "GPA", intimationFor: "GPABrillexStaff", status: "Under review",
+    policyNumber: "GPP0000307000100",
+    employeeCode: "BRX-2287", firstName: "Sneha", middleName: "", surname: "Pillai",
+    mobile: "9922334455", email: "sneha.p@brillex.in",
+    patientName: "Sneha Pillai", relationship: "Self",
+    accidentLocation: "Brillex Office Premises, Electronic City, Bangalore",
+    accidentDescription: "Fell on wet lobby floor while returning from meeting room",
+    injuryDescription: "Soft tissue injury — right knee, grade I sprain",
+    accidentDateTime: "19 Nov 2024, 11:45 AM",
+    firDetails: "No FIR — premises accident",
+    doctorName: "Dr. Leela Nair", hospitalName: "Narayana Multispeciality",
+    hospitalAddress: "258/A, Bommasandra Industrial Area, Bangalore – 560 099", pincode: "560099"
+  }
+];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let state = {
+  records:    MOCK.slice(),
+  activeType: '',
+  dateFrom:   '',
+  dateTo:     '',
+  search:     '',
+  page:       1,
+  pageSize:   6,
+  expandedId: null,
+};
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function fmtDate(iso) {
+  const d = new Date(iso);
+  return {
+    date: d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }),
+    time: d.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', hour12:true }),
+  };
+}
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/** Derive dashboard display label from flat formType + intimationFor */
+function displayType(r) {
+  if (r.formType === 'GPA') {
+    return r.intimationFor === 'GPABrillexStaff' ? 'GPA Brillex Staff' : 'Personal Accident';
+  }
+  if (r.intimationFor === 'Marketing')    return 'Marketing Mediclaim';
+  if (r.intimationFor === 'BrillexStaff') return 'GMC Brillex Staff';
+  return 'Staff Mediclaim';
+}
+
+/** Full employee name from flat fields */
+function empName(r) {
+  return [r.firstName, r.middleName, r.surname].filter(Boolean).join(' ');
+}
+
+function typeBadge(r) {
+  const type = displayType(r);
+  const map = {
+    'Staff Mediclaim':     'badge-staff',
+    'Marketing Mediclaim': 'badge-mktg',
+    'Personal Accident':   'badge-accdt',
+    'GMC Brillex Staff':   'badge-gmcbrl',
+    'GPA Brillex Staff':   'badge-gpabrl',
+  };
+  return `<span class="badge ${map[type]||''}">${esc(type)}</span>`;
+}
+
+/* avatar helpers */
+const AVATAR_COLORS=['#1a56db','#0d7a7a','#7c3aed','#b45309','#0f766e','#be185d','#1d4ed8','#047857','#9333ea','#c2410c'];
+function getInitials(n=''){return n.trim().split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');}
+function avatarColor(i){let h=0;for(let c of i)h=c.charCodeAt(0)+((h<<5)-h);return AVATAR_COLORS[Math.abs(h)%AVATAR_COLORS.length];}
+const DEMO_NAME = 'Admin User';
+(function initAvatar(){
+  const ini=getInitials(DEMO_NAME);
+  const el=document.getElementById('header-avatar');
+  if(el){el.textContent=ini;el.style.background=avatarColor(ini);}
+  const nm=document.getElementById('header-user-name');
+  if(nm) nm.textContent=DEMO_NAME;
+})();
+function statusBadge(status) {
+  const map = {
+    'Pending':      'badge-pending',
+    'Under review': 'badge-review',
+    'Approved':     'badge-approved',
+    'Rejected':     'badge-rejected',
+  };
+  const dot = { 'Pending':'●','Under review':'●','Approved':'✓','Rejected':'✕' }[status]||'●';
+  return `<span class="badge ${map[status]||''}"><span style="font-size:8px;vertical-align:middle">${dot}</span> ${esc(status)}</span>`;
+}
+
+/* ============================================================
+   FILTERING
+   ============================================================ */
+function applyFilters() {
+  return state.records.filter(r => {
+    if (state.activeType) {
+      if (displayType(r) !== state.activeType) return false;
+    }
+    // date range — compare against submittedAt
+    if (state.dateFrom) {
+      const from = new Date(state.dateFrom + 'T00:00:00');
+      if (new Date(r.submittedAt || r.createdAt) < from) return false;
+    }
+    if (state.dateTo) {
+      const to = new Date(state.dateTo + 'T23:59:59');
+      if (new Date(r.submittedAt || r.createdAt) > to) return false;
+    }
+    // search — no trim so spaces work mid-typing
+    if (state.search) {
+      const q = state.search.toLowerCase();
+      const hay = [r.firstName,r.middleName,r.surname,r.employeeCode,r.policyNumber,r.patientName].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function render() {
+  const filtered = applyFilters();
+  const total    = filtered.length;
+  const { page, pageSize } = state;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const safePage   = Math.min(page, totalPages);
+  if (safePage !== state.page) state.page = safePage;
+
+  const pageRecords = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
+
+  // ── Tab counts — count by display label ──
+  const countAll    = state.records.length;
+  const countStaff  = state.records.filter(r => displayType(r) === 'Staff Mediclaim').length;
+  const countMktg   = state.records.filter(r => displayType(r) === 'Marketing Mediclaim').length;
+  const countGmcBrl = state.records.filter(r => displayType(r) === 'GMC Brillex Staff').length;
+  const countAccdt  = state.records.filter(r => displayType(r) === 'Personal Accident').length;
+  const countGpaBrl = state.records.filter(r => displayType(r) === 'GPA Brillex Staff').length;
+  document.getElementById('count-all').textContent    = countAll;
+  document.getElementById('count-staff').textContent  = countStaff;
+  document.getElementById('count-mktg').textContent   = countMktg;
+  document.getElementById('count-gmcbrl').textContent = countGmcBrl;
+  document.getElementById('count-accdt').textContent  = countAccdt;
+  document.getElementById('count-gpabrl').textContent = countGpaBrl;
+  document.getElementById('header-count').textContent = `${countAll} record${countAll!==1?'s':''}`;
+
+  // ── Visible count ──
+  const from = total === 0 ? 0 : (safePage-1)*pageSize+1;
+  const to   = Math.min(safePage*pageSize, total);
+  document.getElementById('visible-count').textContent =
+    total > 0 ? `Showing ${from}–${to} of ${total}` : '';
+
+  // ── Empty state / table ──
+  const tbody     = document.getElementById('table-body');
+  const emptyEl   = document.getElementById('empty-state');
+  const paginNav  = document.getElementById('pagination');
+
+  if (total === 0) {
+    tbody.innerHTML = '';
+    emptyEl.style.display = '';
+    paginNav.style.display = 'none';
+    return;
+  }
+  emptyEl.style.display = 'none';
+  paginNav.style.display = '';
+
+  // ── Table rows ──
+  tbody.innerHTML = pageRecords.map(r => {
+    const { date, time } = fmtDate(r.submittedAt || r.createdAt);
+    const isExpanded = state.expandedId === r._id;
+    const isAccident = r.formType === 'GPA';
+
+    const dataRow = `
+<tr class="data-row${isExpanded?' expanded':''}" data-id="${esc(r._id)}" tabindex="0" role="row" aria-expanded="${isExpanded}">
+  <td data-label="Submitted">
+    <span class="sub-date">${date}</span>
+    <span class="sub-time">${time}</span>
+  </td>
+  <td data-label="Type">${typeBadge(r)}</td>
+  <td data-label="Employee">
+    <div class="emp-name">${esc(empName(r))}</div>
+    <div class="emp-code">${esc(r.employeeCode)}</div>
+  </td>
+  <td data-label="Policy No." class="td-mono">${esc(r.policyNumber)}</td>
+  <td data-label="Patient">
+    <div class="pat-name">${esc(r.patientName)}</div>
+    <div class="pat-rel">${esc(r.relationship)}</div>
+  </td>
+  <td data-label="Email" class="td-email">${esc(r.email) || '<span class="td-empty">—</span>'}</td>
+  <td class="td-chevron">
+    <button class="chevron-btn${isExpanded?' open':''}" aria-label="${isExpanded?'Collapse':'Expand'} details" tabindex="-1">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+        <path d="M3 5l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </td>
+</tr>`;
+
+    if (!isExpanded) return dataRow;
+
+    // ── Detail panel ──
+    const medFields = isAccident ? `
+      <div class="d-field"><span class="d-label">Date &amp; Time of Accident</span><span class="d-value">${esc(r.accidentDateTime)}</span></div>
+      <div class="d-field"><span class="d-label">Location</span><span class="d-value">${esc(r.accidentLocation)}</span></div>
+      <div class="d-field"><span class="d-label">Description</span><span class="d-value">${esc(r.accidentDescription)}</span></div>
+      <div class="d-field"><span class="d-label">Injury Description</span><span class="d-value">${esc(r.injuryDescription)}</span></div>
+      <div class="d-field"><span class="d-label">FIR Details</span><span class="d-value">${esc(r.firDetails)}</span></div>
+    ` : `
+      <div class="d-field"><span class="d-label">Diagnosis</span><span class="d-value">${esc(r.diagnosis)}</span></div>
+      <div class="d-field"><span class="d-label">Nature of Treatment</span><span class="d-value">${esc(r.treatmentNature)}</span></div>
+      <div class="d-field"><span class="d-label">Date of Admission</span><span class="d-value">${esc(r.admissionDateTime)}</span></div>
+    `;
+
+    const detailRow = `
+<tr class="detail-row">
+  <td colspan="7">
+    <div class="detail-panel">
+      <div class="detail-sections">
+        <div class="detail-section">
+          <div class="section-heading">Employee Details</div>
+          <div class="d-field"><span class="d-label">Name</span><span class="d-value">${esc(empName(r))}</span></div>
+          <div class="d-field"><span class="d-label">Employee Code</span><span class="d-value mono">${esc(r.employeeCode)}</span></div>
+          <div class="d-field"><span class="d-label">Mobile</span><span class="d-value mono">${esc(r.mobile)}</span></div>
+          <div class="d-field"><span class="d-label">Email</span><span class="d-value">${esc(r.email)}</span></div>
+          <div class="d-field"><span class="d-label">Intimation For</span><span class="d-value">${esc(r.intimationFor)}</span></div>
+        </div>
+        <div class="detail-section">
+          <div class="section-heading">Patient Details</div>
+          <div class="d-field"><span class="d-label">Patient Name</span><span class="d-value">${esc(r.patientName)}</span></div>
+          <div class="d-field"><span class="d-label">Relationship</span><span class="d-value">${esc(r.relationship)}</span></div>
+          <div class="d-field"><span class="d-label">Policy Number</span><span class="d-value mono">${esc(r.policyNumber)}</span></div>
+          <div class="d-field"><span class="d-label">Reference No.</span><span class="d-value mono">${esc(r.referenceNo)}</span></div>
+        </div>
+        <div class="detail-section">
+          <div class="section-heading">${isAccident ? 'Accident Details' : 'Medical Details'}</div>
+          ${medFields}
+        </div>
+        <div class="detail-section">
+          <div class="section-heading">Hospital Details</div>
+          <div class="d-field"><span class="d-label">Doctor</span><span class="d-value">${esc(r.doctorName)}</span></div>
+          <div class="d-field"><span class="d-label">Hospital</span><span class="d-value">${esc(r.hospitalName)}</span></div>
+          <div class="d-field"><span class="d-label">Address</span><span class="d-value">${esc(r.hospitalAddress)}</span></div>
+          <div class="d-field"><span class="d-label">Pincode</span><span class="d-value mono">${esc(r.pincode)}</span></div>
+        </div>
+      </div>
+    </div>
+  </td>
+</tr>`;
+
+    return dataRow + detailRow;
+  }).join('');
+
+  // ── Pagination ──
+  document.getElementById('pagination-info').textContent = `Showing ${from}–${to} of ${total} records`;
+  renderPagination(safePage, totalPages);
+}
+
+function renderPagination(current, total) {
+  const ctrl = document.getElementById('page-controls');
+  if (total <= 1) { ctrl.innerHTML = ''; return; }
+
+  const pages = buildPages(current, total);
+  let html = `
+    <button class="page-btn" data-page="${current-1}" ${current===1?'disabled':''} aria-label="Previous page">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+        <path d="M7.5 2.5L4 6l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>`;
+  pages.forEach((p,i) => {
+    if (p === '…') {
+      html += `<span style="padding:0 4px;color:var(--muted);font-size:13px">…</span>`;
+    } else {
+      html += `<button class="page-btn${p===current?' active':''}" data-page="${p}" aria-label="Page ${p}" ${p===current?'aria-current="page"':''}>${p}</button>`;
+    }
+  });
+  html += `
+    <button class="page-btn" data-page="${current+1}" ${current===total?'disabled':''} aria-label="Next page">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+        <path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>`;
+  ctrl.innerHTML = html;
+}
+
+function buildPages(current, total) {
+  if (total <= 7) return Array.from({length:total},(_,i)=>i+1);
+  const pages = [];
+  const add = n => pages.push(n);
+  const dots = () => { if (pages[pages.length-1] !== '…') pages.push('…'); };
+  add(1);
+  if (current > 3) dots();
+  for (let p = Math.max(2, current-1); p <= Math.min(total-1, current+1); p++) add(p);
+  if (current < total-2) dots();
+  add(total);
+  return pages;
+}
+
+/* ============================================================
+   EVENT DELEGATION
+   ============================================================ */
+document.getElementById('table-body').addEventListener('click', e => {
+  // Row click → expand/collapse
+  const row = e.target.closest('tr.data-row');
+  if (row) {
+    const id = row.dataset.id;
+    state.expandedId = state.expandedId === id ? null : id;
+    render();
+  }
+});
+
+// Keyboard nav on rows
+document.getElementById('table-body').addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    const row = e.target.closest('tr.data-row');
+    if (row) { e.preventDefault(); const id = row.dataset.id; state.expandedId = state.expandedId===id?null:id; render(); }
+  }
+});
+
+// Pagination clicks
+document.getElementById('page-controls').addEventListener('click', e => {
+  const btn = e.target.closest('[data-page]');
+  if (btn && !btn.disabled) { state.page = parseInt(btn.dataset.page); render(); }
+});
+
+// Tab buttons
+document.querySelector('.tab-strip').addEventListener('click', e => {
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
+  btn.classList.add('active');
+  btn.setAttribute('aria-selected','true');
+  state.activeType = btn.dataset.type;
+  state.page = 1;
+  state.expandedId = null;
+  render();
+});
+
+// Date range filters
+document.getElementById('date-from').addEventListener('change', e => {
+  state.dateFrom = e.target.value;
+  state.page = 1; state.expandedId = null; render();
+});
+document.getElementById('date-to').addEventListener('change', e => {
+  state.dateTo = e.target.value;
+  state.page = 1; state.expandedId = null; render();
+});
+
+// Search (debounced)
+let searchTimer;
+document.getElementById('search-input').addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    state.search = e.target.value.trim();
+    state.page = 1;
+    state.expandedId = null;
+    render();
+  }, 280);
+});
+
+// Clear filters
+document.getElementById('reset-btn').addEventListener('click', () => {
+  state.activeType = '';
+  state.dateFrom   = '';
+  state.dateTo     = '';
+  state.search     = '';
+  state.page       = 1;
+  state.expandedId = null;
+  document.getElementById('search-input').value = '';
+  document.getElementById('date-from').value    = '';
+  document.getElementById('date-to').value      = '';
+  document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
+  document.querySelector('.tab-btn[data-type=""]').classList.add('active');
+  document.querySelector('.tab-btn[data-type=""]').setAttribute('aria-selected','true');
+  render();
+});
+
+// Export CSV
+document.getElementById('export-btn').addEventListener('click', () => {
+  const filtered = applyFilters();
+  const headers = ['Ref No.','Submitted','Form Type','Intimation For','Status',
+                   'Emp Code','Emp Name','Mobile','Email',
+                   'Policy No.','Patient','Relationship',
+                   'Diagnosis','Treatment','Admission',
+                   'Accident Location','Description','Injury','Accident Date/Time','FIR',
+                   'Doctor','Hospital','Hospital Address','Pincode'];
+  const rows = filtered.map(r => {
+    const isAcc = r.formType === 'GPA';
+    return [
+      r.referenceNo, new Date(r.submittedAt||r.createdAt).toLocaleString('en-IN'),
+      r.formType, r.intimationFor, r.status,
+      r.employeeCode, empName(r), r.mobile, r.email,
+      r.policyNumber, r.patientName, r.relationship,
+      !isAcc?r.diagnosis:'', !isAcc?r.treatmentNature:'', !isAcc?r.admissionDateTime:'',
+      isAcc?r.accidentLocation:'', isAcc?r.accidentDescription:'',
+      isAcc?r.injuryDescription:'', isAcc?r.accidentDateTime:'', isAcc?r.firDetails:'',
+      r.doctorName, r.hospitalName, r.hospitalAddress, r.pincode,
+    ];
+  });
+  const csv = [headers,...rows].map(row => row.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'}));
+  a.download = `submissions-${Date.now()}.csv`;
+  a.click();
+});
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+render();
+</script>
+</body>
+</html>
